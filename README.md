@@ -2,50 +2,44 @@
 
 **Contribution Number:** 1
 **Student:** Wilman Garcia
-**Issue:** github.com/kanboard/kanboard/issues/5812
+**Issue:** https://github.com/rubyevents/rubyevents/issues/1788
 **Status:** Phase I Complete
 
 ---
 ## Why I Chose This Issue
-I chose this issue because it involves PHP and SQL, technologies I use
-actively in my own projects. The bug is clearly described with specific
-reproduction steps, affects multiple database backends (SQLite and PostgreSQL),
-and represents a real regression between two versions — which makes it a
-concrete and well-scoped problem to investigate.
 
-I am also interested in learning how a project like Kanboard handles bulk
-operations internally, since task management systems share patterns with the
-SaaS products I build. Tracing this regression will help me understand how
-to debug version-to-version behavior changes in a PHP application.
+I chose this issue because it is a well-scoped, clearly described bug labeled
+"good first issue" by the maintainer. The fix involves changing a sort order in
+a database query — a concept I understand well from my SQL background — even
+though Ruby on Rails is a new framework for me.
+
+I also found this issue through the official CodePath resource for good first
+issues (github.com/issues?q=is:open+is:issue+label:"good+first+issue"), which
+confirms it is an appropriate contribution target. The rubyevents project is
+an active open source community with 550+ stars and a welcoming maintainer.
 
 ---
 
 ## Understanding the Issue
 
 ### Problem Description
-The bulk edit functionality for tasks is broken in Kanboard v1.2.52. When a
-user selects multiple tasks in list view and uses "Edit selected tasks", no
-changes are applied after saving. The issue is silent — no error message is
-shown. The functionality worked correctly in v1.2.48, which makes this a
-regression introduced somewhere between those two versions.
+On a user's profile page, both past and future events are displayed. Past events
+are correctly sorted in descending order (most recent first). However, future
+events are also sorted descending — meaning the furthest upcoming event appears
+first instead of the soonest one. Future events should be sorted ascending so
+the next upcoming event appears at the top of the list.
 
 ### Expected Behavior
-When a user selects multiple tasks and submits the bulk edit form, all selected
-tasks should be updated with the new values (e.g., color, assignee, due date).
+Future events on the profile page should be sorted by date ascending — the
+soonest upcoming event appears first.
 
 ### Current Behavior
-After submitting the bulk edit form, no changes are applied to any of the
-selected tasks. The UI returns to the board without any visible error or
-confirmation that something went wrong.
+Future events are sorted descending, same as past events, causing the furthest
+future event to appear first.
 
-### Affected Components
-- Likely in the bulk action controller or task model — exact file to be
-  confirmed during reproduction.
-- Confirmed broken on: v1.2.52
-- Confirmed working on: v1.2.48
-- Tested with: SQLite, PostgreSQL, Docker, multiple browsers
-
----
+### Affected Area
+- The query or scope that fetches future events for the profile page, likely
+  in a Rails model or controller — exact file to be confirmed during reproduction.
 
 ## Reproduction Process
 
