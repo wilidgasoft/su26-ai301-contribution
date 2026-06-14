@@ -2,48 +2,48 @@
 
 **Contribution Number:** 1
 **Student:** Wilman Garcia
-**Issue:** https://github.com/mantinedev/mantine/issues/8951
+**Issue:** github.com/kanboard/kanboard/issues/5812
 **Status:** Phase I Complete
 
 ---
-
 ## Why I Chose This Issue
+I chose this issue because it involves PHP and SQL, technologies I use
+actively in my own projects. The bug is clearly described with specific
+reproduction steps, affects multiple database backends (SQLite and PostgreSQL),
+and represents a real regression between two versions — which makes it a
+concrete and well-scoped problem to investigate.
 
-I chose this issue because it involves TypeScript and React, technologies I use
-actively in my own SaaS projects. The bug is clearly described and the author
-already points to the exact file and line where the problem exists, which makes
-it a great starting point for my first open source contribution.
-
-I am also interested in learning how a large, well-maintained component library
-like Mantine handles default props and JSDoc documentation internally. Fixing
-this issue will help me understand those patterns, which I can apply to my own
-projects.
+I am also interested in learning how a project like Kanboard handles bulk
+operations internally, since task management systems share patterns with the
+SaaS products I build. Tracing this regression will help me understand how
+to debug version-to-version behavior changes in a PHP application.
 
 ---
 
 ## Understanding the Issue
 
 ### Problem Description
-
-The `Dialog` component has a `withCloseButton` prop. The JSDoc comment says its
-default value is `true`, but the component never actually sets that default.
-This means if you don't pass the prop explicitly, the close button never renders,
-even though the documentation says it should appear by default.
+The bulk edit functionality for tasks is broken in Kanboard v1.2.52. When a
+user selects multiple tasks in list view and uses "Edit selected tasks", no
+changes are applied after saving. The issue is silent — no error message is
+shown. The functionality worked correctly in v1.2.48, which makes this a
+regression introduced somewhere between those two versions.
 
 ### Expected Behavior
-
-When a user renders `<Dialog>` without passing `withCloseButton`, the close
-button should appear by default, as the JSDoc comment states `@default true`.
+When a user selects multiple tasks and submits the bulk edit form, all selected
+tasks should be updated with the new values (e.g., color, assignee, due date).
 
 ### Current Behavior
-
-The close button never renders unless `withCloseButton={true}` is passed
-explicitly, because the default value is missing in the component's defaultProps
-or default parameters.
+After submitting the bulk edit form, no changes are applied to any of the
+selected tasks. The UI returns to the board without any visible error or
+confirmation that something went wrong.
 
 ### Affected Components
-
-- `packages/@mantine/core/src/components/Dialog/Dialog.tsx` — line 34
+- Likely in the bulk action controller or task model — exact file to be
+  confirmed during reproduction.
+- Confirmed broken on: v1.2.52
+- Confirmed working on: v1.2.48
+- Tested with: SQLite, PostgreSQL, Docker, multiple browsers
 
 ---
 
