@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Wilman Garcia
 **Issue:** https://github.com/rubyevents/rubyevents/issues/1788
-**Status:** Phase I Complete
+**Status:** Phase II Complete
 
 ---
 ## Why I Chose This Issue
@@ -41,40 +41,70 @@ future event to appear first.
 - The query or scope that fetches future events for the profile page, likely
   in a Rails model or controller — exact file to be confirmed during reproduction.
 
+
+## Phase II
 ## Reproduction Process
 
 ### Environment Setup
+Forked and cloned the rubyevents repository. The project requires Ruby 4.0.1
+and Node.js 22.15.1. I had to upgrade Ruby from 2.6 to 4.0.1 using rbenv and
+install Node 22.15.1 using nvm. Dependencies were installed with `bundle install`
+and `yarn install`. The app was running locally with `bin/setup` and `bin/dev`
+at http://localhost:3000 within about 30 minutes.
 
-[To be completed in Phase II]
+No major blockers — the CONTRIBUTING.md had clear requirements and the setup
+scripts worked as expected on macOS M1.
 
 ### Steps to Reproduce
-
-1. Create a basic Mantine app with Vite
-2. Render `<Dialog opened={true}>Content</Dialog>` without passing `withCloseButton`
-3. Observe that the close button does not appear
+1. Go to https://www.rubyevents.org/profiles/marcoroth/events (production)
+2. Scroll to the **Future Events** section
+3. Observe that the furthest upcoming event appears first (e.g. November before July)
+4. **Expected:** Soonest upcoming event appears first (ascending order)
+5. **Actual:** Furthest future event appears first (descending order)
+6. Note that Past Events are correctly sorted descending — this should stay unchanged
 
 ### Reproduction Evidence
-
-- **Commit showing reproduction:** [To be added in Phase II]
-- **Screenshots/logs:** [To be added in Phase II]
-- **My findings:** [To be added in Phase II]
+- **Branch:** https://github.com/wilidgasoft/rubyevents/tree/fix-issue-1788
+- **Root cause confirmed in:** `app/views/profiles/_events.html.erb` line 1
+- **My findings:** Both future and past events were using `.sort_by(&:sort_date).reverse`,
+  which forces descending order on both. Removing `.reverse` from the future_events
+  line fixes the sort order. Verified in Rails console — query returns
+  `ORDER BY events.start_date ASC` after the fix.
 
 ---
 
 ## Solution Approach
 
 ### Analysis
+The bug is in `app/views/profiles/_events.html.erb`. The first two lines are:
 
-[To be completed in Phase II]
+```ruby
+<% future_events = events.upcoming.sort_by(&:sort_date).reverse %>
+<% past_events = (events.to_a - future_events).sort_by(&:sort_date).reverse %>
+```
+
+Both use `.reverse`, forcing descending order on future events when they should
+be ascending. The `Event` model already has the correct scopes in
+`app/models/event.rb` (`scope :upcoming` uses `order(start_date: :asc)`), but
+the view overrides this with `.reverse`.
 
 ### Proposed Solution
-
-[To be completed in Phase II]
+Remove `.reverse` from the `future_events` line only. The `past_events` line
+keeps `.reverse` to maintain correct descending order for past events.
 
 ### Implementation Plan
-
-[To be completed in Phase II]
-
+1. In `app/views/profiles/_events.html.erb`, change line 1 from:
+```ruby
+   <% future_events = events.upcoming.sort_by(&:sort_date).reverse %>
+```
+   to:
+```ruby
+   <% future_events = events.upcoming.sort_by(&:sort_date) %>
+```
+2. Leave `past_events` line unchanged
+3. Verify in Rails console that future events return ascending order
+4. Verify visually in the browser on a profile with future events
+5. Open PR referencing issue #1788
 ---
 
 ## Testing Strategy
