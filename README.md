@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Wilman Garcia
 **Issue:** https://github.com/rubyevents/rubyevents/issues/1788
-**Status:** Phase II Complete
+**Status:** Phase III Complete
 
 ---
 ## Why I Chose This Issue
@@ -109,13 +109,58 @@ keeps `.reverse` to maintain correct descending order for past events.
 
 ## Testing Strategy
 
-[To be completed in Phase III]
+The fix was verified through two methods:
+
+**Manual verification in production:**
+Compared the live site at https://www.rubyevents.org/profiles/marcoroth/events
+before and after the fix. Future events were displaying in descending order
+(November before July), confirming the bug. The expected behavior is ascending
+order (soonest upcoming event first).
+
+**Rails console verification locally:**
+```ruby
+user = User.joins(event_participations: :event)
+  .where("events.start_date >= ?", Date.current)
+  .first
+events = user.participated_events.includes(:series)
+future_events = events.upcoming.sort_by(&:sort_date)
+future_events.map { |e| "#{e.name} - #{e.start_date}" }
+# => ["RubyConf 2026 - 2026-07-14"]
+```
+The query confirms `ORDER BY events.start_date ASC` after the fix.
+Past events sort order was verified unchanged — still descending.
+
+The project uses minitest. No existing tests cover the profile events sort
+order directly. The fix is a one-line view change with clear before/after
+behavior verified visually and through the Rails console.
 
 ---
 
 ## Implementation Notes
 
-[To be completed in Phase III]
+The fix required changing a single line in `app/views/profiles/_events.html.erb`:
+
+```ruby
+# Before
+<% future_events = events.upcoming.sort_by(&:sort_date).reverse %>
+
+# After
+<% future_events = events.upcoming.sort_by(&:sort_date) %>
+```
+
+The root cause was that both future and past events used `.reverse`, forcing
+descending order on both sections. The `Event` model already had the correct
+scope defined (`scope :upcoming` uses `order(start_date: :asc)`), but the
+view was overriding it with `.reverse`.
+
+Removing `.reverse` from the `future_events` line aligns the view with the
+model's intended sort order. The `past_events` line retains `.reverse` to
+keep correct descending order for past events.
+
+The linter (`bin/lint`) passed with no errors — ERB, Ruby, JS, and YAML
+all clean before opening the PR.
+
+---
 
 ---
 
