@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Wilman Garcia
 **Issue:** https://github.com/rubyevents/rubyevents/issues/1788
-**Status:** Phase III Complete
+**Status:** Phase IV Complete
 
 ---
 ## Why I Chose This Issue
@@ -165,18 +165,44 @@ all clean before opening the PR.
 ---
 
 ## Pull Request
-
-**PR Link:** [To be submitted in Phase IV]
+**PR Link:** https://github.com/rubyevents/rubyevents/pull/1816
+**Status:** Merged ✅
 
 ---
 
 ## Learnings & Reflections
 
-[To be completed at the end of the program]
+This contribution taught me more than I expected from a one-line fix.
+
+The most valuable lesson was learning how to navigate an unfamiliar codebase
+methodically — using grep to trace the code path, reading the model scopes,
+and finding where the view was overriding the intended behavior. The bug was
+not where I initially looked (the controller), but in the view layer.
+
+Setting up a Ruby on Rails environment from scratch on M1 was also a new
+experience for me. I had never worked with Ruby before, but the concepts
+translated directly from my PHP and Python background. Having to upgrade
+from Ruby 2.6 to 4.0.1 using rbenv and configure Node 22.15.1 with nvm
+taught me how to manage multiple runtime versions on the same machine.
+
+I also learned the importance of running the linter before opening a PR
+(`bin/lint`) and keeping the branch up to date with upstream via rebase
+before submitting. These are small habits that make a real difference in
+a collaborative open source project.
+
+The process of finding the right issue took longer than the fix itself —
+I evaluated several projects (Mantine, Kanboard, Flarum, InvoiceShelf,
+laravel/vs-code-extension) before landing on rubyevents. That search
+process taught me how to read a project's health signals: activity level,
+number of core contributors, issue response time, and whether bugs are
+being picked up by external contributors or only by the core team.
 
 ---
 
 ## Resources Used
 
-- https://mantine.dev/core/dialog/
-- https://github.com/mantinedev/mantine/issues/8949
+- https://github.com/rubyevents/rubyevents/issues/1788 — Original issue
+- https://github.com/rubyevents/rubyevents/pull/1816 — Merged PR
+- https://github.com/rubyevents/rubyevents/blob/main/CONTRIBUTING.md — Contribution guidelines
+- https://github.com/rbenv/rbenv — Ruby version management
+- https://github.com/nvm-sh/nvm — Node version management
