@@ -5,7 +5,7 @@
 | Contribution | Repo | Status | Phase |
 |---|---|---|---|
 | 1 | rubyevents/rubyevents | ✅ Merged | Phase IV Complete |
-| 2 | Rinava/MarkSight | 🔄 In Progress | Phase I — Issue Selection |
+| 2 | Rinava/MarkSight | 🔄 Phase III In Progress | Phase II — Complete |
  
 ---
  
@@ -325,10 +325,101 @@ _(Not yet started — next steps below.)_
  
 ## Phase III — Build
  
-_(Not started. Will begin after Phase I is confirmed and the local environment
-is reproducing the bug.)_
- 
+## Reproduction Process
+
+### Environment Setup
+Forked and cloned the MarkSight repository. The project uses Next.js 15 with
+Turbopack. Setup was straightforward — ran `npm install` and `npm run dev`.
+The app loads at http://localhost:3000 without any configuration needed.
+
+One non-blocking warning appears in the browser console:
+`eval() is not supported in this environment` — this is a known React/Next.js
+development warning with Turbopack and does not affect functionality.
+
+Node.js version used: v20.20.2
+
+**Working branch:** https://github.com/wilidgasoft/MarkSight/tree/fix-issue-25
+
+### Steps to Reproduce
+1. Open http://localhost:3000
+2. Type any content in the Markdown editor
+3. Click the **Clear** button in the toolbar
+4. **Expected:** A confirmation dialog appears asking the user to confirm
+   before clearing the document
+5. **Actual:** The document is immediately cleared with no confirmation —
+   only a toast notification with an Undo option appears briefly
+
+### Reproduction Evidence
+- **Root cause confirmed in:** `src/components/workspace/workspace.tsx`
+  — `handleClear` function (line 135) calls `setValue("")` immediately
+  with no confirmation guard
+- **Clear button:** line 333, wired directly to `handleClear`
+- **My findings:** The project already has `src/components/ui/dialog.tsx`
+  (Radix Dialog from shadcn/ui) available for use. No new dependencies needed.
+  The issue also notes `handleReset` (line 150) has the same risk but Clear
+  is the priority since it destroys all content outright.
+
 ---
+
+## Solution Approach
+
+### Analysis
+The bug is in `src/components/workspace/workspace.tsx`. The `handleClear`
+function (line 135) runs immediately when the Clear button is clicked —
+it calls `setValue("")`, `trackClear()`, and shows a success toast with
+an Undo option. There is no confirmation step before the destructive action.
+
+The project already includes `src/components/ui/dialog.tsx` (Radix Dialog,
+part of shadcn/ui), which provides an accessible, keyboard-navigable
+confirmation dialog with Esc-to-cancel support out of the box.
+
+**Analogous pattern in the codebase:** The existing toast + Undo pattern
+in `handleClear` and `handleReset` shows the project already thinks about
+accidental data loss — the confirmation dialog is the missing first layer.
+
+### Proposed Solution
+Add a controlled `useState` boolean (`clearDialogOpen`) to manage the dialog
+visibility. When the user clicks Clear, open the dialog instead of running
+the clear logic. Only run the existing `handleClear` logic (setValue, trackClear,
+toast) when the user confirms inside the dialog. Cancel closes the dialog
+and leaves the document unchanged.
+
+Only show the dialog when the document is non-empty (`value.trim() !== ""`),
+so clearing an already-empty document stays frictionless — as suggested in
+the issue.
+
+### Implementation Plan
+
+**Understand:** `handleClear` in `src/components/workspace/workspace.tsx`
+runs destructive logic immediately on click. A single misclick erases all
+content. The Undo toast is a weak safety net — it disappears quickly.
+
+**Match:** `src/components/ui/dialog.tsx` already exists and is used elsewhere
+in the project. The shadcn Dialog pattern is the standard way to handle
+confirmation flows in this codebase.
+
+**Plan:**
+1. Add `const [clearDialogOpen, setClearDialogOpen] = useState(false)` in
+   `workspace.tsx`
+2. Rename current `handleClear` to `executeClear` — this runs the actual
+   clear logic (setValue, trackClear, toast)
+3. Create new `handleClear` that checks `value.trim() !== ""` — if non-empty,
+   opens the dialog; if empty, runs `executeClear` directly
+4. Wire the Clear button `onClick` to the new `handleClear`
+5. Add the Dialog component in the JSX with Cancel and Confirm buttons —
+   Confirm calls `executeClear` and closes the dialog
+6. Verify: clicking Clear on non-empty doc shows dialog; Cancel leaves doc
+   unchanged; Confirm clears doc and shows existing toast + Undo
+
+**Review:** Will follow project conventions — shadcn/ui components, existing
+toast pattern preserved, `trackClear()` analytics call unchanged.
+
+**Evaluate:**
+- Manual: reproduce steps above — dialog should appear before clearing
+- Write a test verifying the dialog renders when Clear is clicked on
+  non-empty content
+- Verify existing behavior preserved on confirm (toast + Undo still works)
+- Verify no regression on Reset button
  
 ## Phase IV — Submit and Iterate
  
