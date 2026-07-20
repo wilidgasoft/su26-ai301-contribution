@@ -310,22 +310,14 @@ the document unconditionally.
 - Existing behavior to preserve on confirm: store previous value for Undo,
   `setValue("")`, `trackClear()` analytics call, existing success toast
 ### Acceptance Criteria (from issue)
-- [ ] Clicking Clear shows a confirmation prompt; document only clears after confirming
-- [ ] Cancelling leaves the document unchanged
-- [ ] On confirm: previous value stored for Undo, content cleared, `trackClear()` fired, success toast shown
-- [ ] Confirmation is keyboard-accessible (focusable, Esc to cancel)
-- [ ] No regression to the Reset button
+- [x] Clicking Clear shows a confirmation prompt; document only clears after confirming
+- [x] Cancelling leaves the document unchanged
+- [x] On confirm: previous value stored for Undo, content cleared, `trackClear()` fired, success toast shown
+- [x] Confirmation is keyboard-accessible (focusable, Esc to cancel)
+- [x] No regression to the Reset button
 ---
  
 ## Phase II — Reproduction Process
- 
-_(Not yet started — next steps below.)_
- 
----
- 
-## Phase III — Build
- 
-## Reproduction Process
 
 ### Environment Setup
 Forked and cloned the MarkSight repository. The project uses Next.js 15 with
@@ -420,30 +412,129 @@ toast pattern preserved, `trackClear()` analytics call unchanged.
   non-empty content
 - Verify existing behavior preserved on confirm (toast + Undo still works)
 - Verify no regression on Reset button
- 
+
+---
+
+## Phase III — Build
+
+### Testing Strategy
+
+The fix was verified through two methods:
+
+**Manual verification in the browser:**
+1. Opened http://localhost:3000 and typed content in the editor
+2. Clicked Clear — confirmation dialog appeared with "Clear the document?"
+3. Clicked Cancel — document remained unchanged ✅
+4. Clicked Clear again → confirmed — document cleared + success toast with Undo ✅
+5. Clicked Clear on an empty document — dialog did not appear, cleared silently ✅
+6. Pressed Esc while dialog was open — dialog closed, document unchanged ✅
+7. Verified Reset button behavior unchanged — no regression ✅
+
+**Automated test suite:**
+Ran `npm test` (Vitest) — 85 tests across 9 test files, all passing.
+No existing tests cover the confirmation dialog directly, as the project's
+test suite focuses on the skill/markdown logic layer rather than UI interactions.
+New behavior was verified manually per the acceptance criteria in issue #25.
+
+**Build and lint:**
+- `npm run lint` — passed with 1 pre-existing warning in `outline-rail.tsx`
+  (unrelated to this PR, pre-dates this contribution)
+- `npm run build` — compiled successfully with no errors
+
+---
+
+### Implementation Notes
+
+**Files modified:**
+- `src/components/workspace/workspace.tsx` — commit `5f31e29`
+
+**Changes made:**
+1. Added imports for `Dialog`, `DialogContent`, `DialogDescription`,
+   `DialogFooter`, `DialogHeader`, `DialogTitle` from `@/components/ui/dialog`
+   and `Button` from `@/components/ui/button`
+2. Added `const [clearDialogOpen, setClearDialogOpen] = useState(false)`
+   alongside existing state declarations
+3. Renamed original `handleClear` to `executeClear` — preserves all existing
+   logic: snapshot for Undo, `setValue("")`, `trackClear()`, success toast,
+   and `setClearDialogOpen(false)`
+4. Created new `handleClear` that checks `value.trim() !== ""` — opens dialog
+   if non-empty, calls `executeClear` directly if already empty
+5. Added `<Dialog>` JSX at the bottom of the component tree (before closing
+   `</TooltipProvider>`) with Cancel and Clear buttons
+
+**Challenge faced:**
+The `useState` hook for `clearDialogOpen` was initially placed after the
+`return` statement — a React rules-of-hooks violation. Moved it to the top
+of the component alongside the other state declarations. This is a common
+mistake when adding state to a large component — hooks must always be declared
+before any `return`.
+
+---
+
 ## Phase IV — Submit and Iterate
- 
-_(Not started. Will open PR after implementation and testing are complete.)_
- 
+
+### Pull Request
+**PR Link:** https://github.com/Rinava/MarkSight/pull/112
+**Status:** Merged ✅ — Jul 17, 2026
+
+### Maintainer Feedback Log
+
+**Jul 14, 2026 — Rinava requested changes:**
+- Indentation: new `executeClear`/`handleClear` blocks and `<Dialog>` JSX
+  were flush-left, inconsistent with the file's 2-space style
+- Two stray blank lines above the `return` statement
+- Optional nit: `setClearDialogOpen(false)` called inside `executeClear`
+  even on the empty-document path where dialog was never open — harmless
+  but redundant
+
+**Jul 17, 2026 — Resolution:**
+Maintainer fixed the indentation and blank lines directly inside the commit
+and merged. Comment: *"the behavior design was right from the start."*
+
+**Learning:** Always run the project's formatter or manually match indentation
+before pushing. Since MarkSight doesn't have Prettier yet (issue #78),
+indentation must be hand-matched to the surrounding 2-space style.
+
 ---
- 
-## Next Steps
- 
-1. Comment on the issue to request assignment (see draft comment below)
-2. Fork and clone `Rinava/MarkSight`
-3. Run `npm install` and `npm run dev` to stand up the local environment
-4. Reproduce current behavior: click Clear, confirm it wipes the document with no prompt
-5. Implement the confirmation dialog using the existing `src/components/ui/dialog.tsx`
-6. Verify all acceptance criteria, including keyboard accessibility
-7. Run `npm run lint` and existing vitest suite before opening the PR
-8. Update this README with reproduction evidence and implementation notes
+
+### Learnings & Reflections
+
+This contribution reinforced something important: getting the behavior right
+matters more than getting every mechanical detail perfect on the first try.
+The maintainer's feedback was entirely about formatting (indentation and blank
+lines), not about the logic or design — and his final comment confirmed the
+approach was correct from the start.
+
+The main technical lesson was about React hooks placement. Adding `useState`
+to a large, existing component is easy to get wrong if you're not careful
+about where you put the declaration. Hooks must always appear before the
+`return` statement — something easy to overlook when scrolling through
+400+ lines of code to find a good spot.
+
+The indentation feedback taught me a practical habit: when a project doesn't
+have an auto-formatter like Prettier, you have to manually match the surrounding
+code style before pushing. I'll run a visual diff of my changes against the
+rest of the file before every future PR.
+
+The full cycle — from issue to dialog design to review to merge — also showed
+me how a maintainer thinks about small contributions. Rinava didn't just check
+"does it work" — he also checked keyboard accessibility, the empty-document
+edge case, and whether the Undo toast still fired on confirm. Those are the
+acceptance criteria I wrote into the PR checklist, which made the review faster
+because the maintainer could see I had already verified them.
+
+Compared to my first contribution (rubyevents), this one involved more
+back-and-forth and a real review cycle. That made it more valuable as a
+learning experience even though the fix itself was larger.
+
 ---
- 
+
 ## Resources Used
- 
+
 - https://github.com/Rinava/MarkSight/issues/25 — Original issue
-- https://github.com/Rinava/MarkSight — Repository
+- https://github.com/Rinava/MarkSight/pull/112 — Merged PR
 - https://github.com/Rinava/MarkSight/blob/main/CONTRIBUTING.md — Contribution guidelines
-- https://github.com/Rinava — Maintainer profile (Lara Mateo), reviewed to confirm active involvement and responsiveness to contributors
-- https://github.com/Rinava/MarkSight/pulls — Open PRs at time of selection, reviewed as evidence of active contributor traffic
+- https://ui.shadcn.com/docs/components/dialog — shadcn/ui Dialog documentation
+- https://www.radix-ui.com/primitives/docs/components/dialog — Radix Dialog primitives
+- https://github.com/Rinava/MarkSight/issues/78 — Context on why Prettier isn't set up yet
 - CodePath good-first-issue search: `github.com/issues?q=is:open+is:issue+label:"good+first+issue"`
