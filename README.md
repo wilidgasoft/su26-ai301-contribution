@@ -5,7 +5,7 @@
 | Contribution | Repo | Status | Phase |
 |---|---|---|---|
 | 1 | rubyevents/rubyevents | ✅ Merged | Phase IV Complete |
-| 2 | Rinava/MarkSight | Merged | Phase IV Complete |
+| 2 | Rinava/MarkSight | Merged | Phase IV Complete |Waiting for get another Bug
  
 ---
  
