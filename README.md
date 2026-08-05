@@ -6,6 +6,7 @@
 |---|---|---|---|
 | 1 | rubyevents/rubyevents | ✅ Merged | Phase IV Complete |
 | 2 | Rinava/MarkSight | Merged | Phase IV Complete |Waiting for get another Bug
+| 3 | Rinava/MarkSight | Merged | Phase I Complete  |Phase I — Issue Selection (Assigned to me by maintainer ✅)
  
 ---
  
@@ -538,3 +539,341 @@ learning experience even though the fix itself was larger.
 - https://www.radix-ui.com/primitives/docs/components/dialog — Radix Dialog primitives
 - https://github.com/Rinava/MarkSight/issues/78 — Context on why Prettier isn't set up yet
 - CodePath good-first-issue search: `github.com/issues?q=is:open+is:issue+label:"good+first+issue"`
+
+
+# Contribution 3: Make the Google Analytics ID configurable
+ 
+**Contribution Number:** 3
+**Student:** Wilman Garcia
+**Issue:** https://github.com/Rinava/MarkSight/issues/121
+**Status:** Phase I — Issue Selection (Assigned to me by maintainer ✅)
+ 
+---
+ 
+## Fork
+ 
+**Fork link:** https://github.com/wilidgasoft/MarkSight
+ 
+---
+ 
+## Issue Eligibility Verification
+ 
+Verified as of August 4, 2026: the issue is **open**, **assigned to me by the
+maintainer (@Rinava)**, has **no linked pull request or branch**, and carries
+**no blocking labels**. It is labeled `enhancement` and `good first issue`.
+I requested the issue via a comment and the maintainer assigned it to me,
+so this contribution has an explicit maintainer go-ahead.
+ 
+---
+ 
+## Why I Chose This Issue
+ 
+I chose this issue for three reasons.
+ 
+First, it lets me practice a different *category* of contribution. My first
+contribution (rubyevents #1788) was a pure bug fix — tracing incorrect
+behavior to its root cause. My second (MarkSight #25) was a UI/UX behavior
+change — designing a confirmation flow. This one is a **configuration and
+deployment concern**: making a hardcoded value environment-driven so the
+project behaves correctly for *every* deployment, not just the maintainer's.
+That's a skill I use professionally (12-factor app config, environment
+variables per environment), and open source is a good place to practice
+applying it under someone else's conventions.
+ 
+Second, the issue has real-world impact beyond a cosmetic fix. Right now,
+anyone who forks or self-hosts MarkSight silently sends their visitors'
+pageview data to the maintainer's Google Analytics property. That's both a
+privacy problem for fork users' visitors and a data-pollution problem for the
+maintainer. Fixing it makes the project genuinely fork-friendly — which
+matters for a repo that explicitly invites new contributors.
+ 
+Third, I already have a working relationship with this repo and maintainer:
+my PR #112 (confirmation dialog) was merged in July, I know the codebase
+layout, my dev environment is already set up, and I understand the
+maintainer's review style (behavior first, but match the file's formatting
+conventions exactly — MarkSight has no Prettier yet, see issue #78). This
+lets me spend my time on the contribution quality rather than on setup.
+ 
+**My learning goal for this cycle:** practice implementing a
+*conditional-by-configuration* feature the way a maintainer wants it —
+including the "absence" path (when the env var is unset, the GA script must
+not load at all, verifiable in the browser's network tab) and documenting
+the variable for future users in `.env.example`. Verifying that something
+correctly does NOT happen is a different testing mindset than verifying
+that something does.
+ 
+**Feasibility checklist applied:**
+- [x] Labeled `good first issue` and `enhancement` by the maintainer
+- [x] Issue explicitly assigned to me by the maintainer
+- [x] Repo has recent commit/PR activity and a live production app
+- [x] CONTRIBUTING.md and CODE_OF_CONDUCT.md exist with clear setup steps
+- [x] Issue has exact file/line reference (`src/app/layout.tsx:160`),
+      a proposed solution, implementation notes, and acceptance criteria
+      written by the maintainer
+- [x] Scoped small: one conditional render plus one documented env var —
+      the maintainer himself describes it as "one conditional plus an env
+      var" with results verifiable in the browser's network tab
+**Repo health signals:**
+- Live production app: marksight.laramateo.com
+- Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind v4,
+  shadcn/ui, CodeMirror, vitest
+- Maintainer (Lara Mateo / @Rinava) actively labels and writes detailed
+  "good first issue" tickets with acceptance criteria, responds to issue
+  claims, and merged my previous PR (#112) within days
+- I am a returning contributor to this repo — this is my second
+  contribution here, which reflects sustained engagement with one open
+  source community rather than one-off drive-by PRs
+---
+ 
+## Understanding the Issue
+ 
+### Problem Summary (in my own words)
+MarkSight's root layout (`src/app/layout.tsx`, line 160) hardcodes the
+maintainer's own Google Analytics ID directly in the JSX:
+`<GoogleAnalytics gaId="G-YYGPWZ1WF7" />`. There is no
+`NEXT_PUBLIC_GA_*` environment variable anywhere in the codebase. The
+consequence: every fork and every self-hosted deployment of MarkSight ships
+analytics events from *their* visitors to the *maintainer's* GA property —
+silently, with no way to opt out or substitute their own ID short of editing
+source code. For a project that positions itself as fork-friendly, that's a
+bad default: fork users unknowingly leak their visitors' pageview data, and
+the maintainer's analytics get polluted with traffic that isn't hers.
+ 
+### Expected Behavior
+The GA ID should come from an environment variable
+(`process.env.NEXT_PUBLIC_GA_ID`). When the variable is set, the
+`<GoogleAnalytics>` component renders with that ID. When it is unset, the
+component does not render at all and **no GA script loads** (verifiable in
+the browser's network tab). The variable should be documented as optional
+in `.env.example`.
+ 
+### Current Behavior
+The GA ID `G-YYGPWZ1WF7` is hardcoded in `src/app/layout.tsx:160`. Every
+build of the project — including forks and self-hosted deployments — loads
+Google Analytics with the maintainer's property ID, unconditionally.
+ 
+### Affected Area
+- `src/app/layout.tsx` (line 160): the hardcoded `<GoogleAnalytics>` render —
+  to be replaced with a conditional render driven by
+  `process.env.NEXT_PUBLIC_GA_ID`
+- `.env.example`: new documented optional variable `NEXT_PUBLIC_GA_ID`
+- Note from maintainer's implementation notes: the `NEXT_PUBLIC_` prefix is
+  required because the value is read at build/render time for the client —
+  a plain server-side env var would not be exposed to the component
+- The maintainer's own production deployment will keep analytics by setting
+  the variable in the hosting environment rather than in code — so the fix
+  must not break her existing deployment workflow
+### Acceptance Criteria (from issue)
+- [ ] With the var unset, no GA script loads (check the network tab)
+- [ ] With the var set, that ID is used
+- [ ] `.env.example` documents it as optional
+---
+---
+ 
+# IMPROVED SECTIONS — Contribution 1 (rubyevents #1788)
+ 
+> Replace the corresponding sections in your existing document with these.
+> Also fix the Contribution 1 title: it currently says "Dialog
+> withCloseButton documentation incorrect" but should be
+> **"Future events sorted in wrong order on profile page"** (or the actual
+> issue #1788 title).
+ 
+---
+ 
+## Phase II — Reproduce and Plan (IMPROVED)
+ 
+### Environment Setup
+ 
+Forked and cloned the rubyevents repository from
+https://github.com/rubyevents/rubyevents to my fork at
+https://github.com/wilidgasoft/rubyevents.
+ 
+**Working branch (named after the issue):**
+https://github.com/wilidgasoft/rubyevents/tree/fix-issue-1788
+ 
+**Setup challenges faced and resolved:**
+ 
+1. **Ruby version mismatch.** The project requires Ruby 4.0.1; my M1 Mac had
+   the system Ruby 2.6. Installing 4.0.1 via rbenv initially failed because
+   the build couldn't find OpenSSL headers. Resolved by installing
+   `openssl@3` via Homebrew and pointing the build at it:
+   `RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@3)" rbenv install 4.0.1`,
+   then `rbenv local 4.0.1` in the project directory.
+2. **Node version mismatch.** The project pins Node 22.15.1; I had a
+   different version active. Installed and activated it with
+   `nvm install 22.15.1 && nvm use 22.15.1`.
+3. **Dependency installation.** `bundle install` and `yarn install` completed
+   without errors once the correct runtimes were active.
+4. **Database seed data.** Ran `bin/setup`, which prepares the SQLite
+   database and seeds sample data — this was essential for reproduction,
+   because I needed a profile with *future* events to observe the sort bug
+   locally.
+Total setup time: ~30 minutes. The CONTRIBUTING.md requirements were
+accurate, and `bin/dev` served the app at http://localhost:3000.
+ 
+### Steps to Reproduce (local environment)
+ 
+1. Start the app locally: `bin/dev` → http://localhost:3000
+2. Navigate to a profile page for a user who has both past and future
+   events (e.g. `/profiles/marcoroth/events` in seeded data; the same bug
+   is observable in production at
+   https://www.rubyevents.org/profiles/marcoroth/events)
+3. Scroll to the **Future Events** section
+4. **Expected:** the soonest upcoming event appears first (ascending by
+   date) — e.g. a July 2026 event listed above a November 2026 event
+5. **Actual:** the furthest upcoming event appears first (descending by
+   date) — November 2026 listed above July 2026
+6. Scroll to the **Past Events** section and confirm it is correctly sorted
+   descending (most recent first) — this behavior must remain unchanged
+   by the fix
+### Root Cause
+ 
+**File:** `app/views/profiles/_events.html.erb`, line 1.
+ 
+Both event lists are built at the top of the view partial:
+ 
+```ruby
+<% future_events = events.upcoming.sort_by(&:sort_date).reverse %>
+<% past_events = (events.to_a - future_events).sort_by(&:sort_date).reverse %>
+```
+ 
+Both lines apply `.reverse`, forcing descending order on both sections. For
+past events that is correct; for future events it inverts the intended
+order. Notably, the `Event` model already defines the correct scope in
+`app/models/event.rb` — `scope :upcoming` orders by `start_date: :asc` —
+but the view layer overrides the model's intent with `.reverse`.
+ 
+Root cause verified in the Rails console: after removing `.reverse` from the
+`future_events` line, the generated query returns
+`ORDER BY events.start_date ASC`, and past events remain descending.
+ 
+### UMPIRE Plan
+ 
+**Understand:** Future events on the profile page display furthest-first
+instead of soonest-first. Past events display correctly (most recent first).
+The bug is a sorting inversion affecting only the Future Events section of
+`app/views/profiles/_events.html.erb`.
+ 
+**Match:** The codebase already expresses the correct intent at the model
+layer: `scope :upcoming` in `app/models/event.rb` orders ascending. The
+matching pattern is therefore *not* to add new sorting logic, but to stop
+the view from overriding the model's ordering. This mirrors a common Rails
+convention: ordering belongs in scopes, and views should respect it.
+ 
+**Plan:**
+1. In `app/views/profiles/_events.html.erb`, change line 1 from
+   `events.upcoming.sort_by(&:sort_date).reverse` to
+   `events.upcoming.sort_by(&:sort_date)` (remove only `.reverse`)
+2. Leave the `past_events` line unchanged — its `.reverse` is intentional
+3. Verify in the Rails console that future events now return ascending order
+4. Verify visually in the browser on a seeded profile with future events
+5. Confirm Past Events section still renders descending (no regression)
+**Implement:** One-line change to the view partial (see Phase III).
+ 
+**Review:** Follow project conventions — run `bin/lint` (covers ERB, Ruby,
+JS, YAML) before opening the PR, and rebase on upstream `main` so the branch
+is current.
+ 
+**Evaluate:**
+- Rails console query verification (ascending order for future events)
+- Visual before/after comparison in the browser
+- Past Events regression check (still descending)
+- The project uses minitest; no existing tests cover this view's sort order.
+  Given the fix is a one-line view change, verification was performed via
+  console query output plus visual confirmation, documented with
+  before/after evidence in the PR.
+---
+ 
+## Phase IV — Submit and Iterate (IMPROVED)
+ 
+### Pull Request
+ 
+**PR Link:** https://github.com/rubyevents/rubyevents/pull/1816
+**Target:** opened against upstream `rubyevents/rubyevents`, branch `main`
+**Status:** Merged ✅
+ 
+### PR Structure (why before what)
+ 
+The PR description opens with the *why*: on profile pages, visitors looking
+for a user's next appearance see the furthest-away event first, which
+defeats the purpose of the Future Events section — the most actionable
+information (the next upcoming event) is buried at the bottom of the list.
+ 
+It then explains the *what*: a one-line change removing `.reverse` from the
+`future_events` assignment in `app/views/profiles/_events.html.erb`,
+restoring the ascending order already defined by the `Event` model's
+`upcoming` scope. The PR references the issue with `Closes #1788`.
+ 
+### Acceptance Criteria Checklist (from the PR)
+ 
+- [x] Future events on the profile page are sorted ascending — soonest
+      upcoming event appears first
+- [x] Past events remain sorted descending — most recent first (no
+      regression)
+- [x] Verified in the Rails console: the query returns
+      `ORDER BY events.start_date ASC` for future events after the fix
+- [x] Verified visually in the browser before/after the change
+- [x] `bin/lint` passes clean (ERB, Ruby, JS, YAML)
+- [x] Branch rebased on upstream `main` before submission
+### Before / After Evidence
+ 
+**Before (bug):** On https://www.rubyevents.org/profiles/marcoroth/events,
+the Future Events section listed a November 2026 event above a July 2026
+event — furthest first.
+ 
+**After (fix, local):** With the one-line change applied, the same profile
+lists the July 2026 event first — soonest first. Rails console confirmation:
+ 
+```ruby
+future_events = events.upcoming.sort_by(&:sort_date)
+future_events.map { |e| "#{e.name} - #{e.start_date}" }
+# => ["RubyConf 2026 - 2026-07-14", ...]  # ascending — soonest first
+```
+ 
+Past Events verified unchanged — still descending.
+ 
+### Maintainer Feedback Log
+ 
+- **PR opened:** referencing issue #1788 with `Closes #1788`, following the
+  repository's PR conventions (lint passing, branch rebased on upstream
+  `main`).
+- **Review outcome:** the maintainer merged the PR **without requesting any
+  changes**. No review comments required iteration — the one-line diff, the
+  console verification, and the before/after evidence in the PR description
+  answered the reviewer's likely questions (why only the future line
+  changes, why past events keep `.reverse`) preemptively.
+- **Takeaway:** a zero-iteration merge is itself a signal — anticipating the
+  reviewer's questions inside the PR description (scope of change, what was
+  intentionally left untouched, how it was verified) reduces review friction
+  even for trivial diffs.
+### Learnings & Reflections
+ 
+This contribution taught me more than I expected from a one-line fix.
+ 
+The most valuable lesson was learning to navigate an unfamiliar codebase
+methodically — using grep to trace the code path, reading the model scopes,
+and discovering that the bug was not where I first looked (the controller)
+but in the view layer, where a `.reverse` call was overriding the model's
+correctly-defined ordering. The deeper insight: in Rails codebases, when
+behavior contradicts a model scope, look for a view or controller override
+before assuming the scope is wrong.
+ 
+Setting up a Ruby on Rails environment from scratch on an M1 Mac was also
+new territory. I had never worked with Ruby, but the concepts translated
+from my PHP and Python background. Managing the Ruby 2.6 → 4.0.1 upgrade
+with rbenv (including the OpenSSL build issue) and pinning Node 22.15.1
+with nvm taught me practical multi-runtime version management.
+ 
+On process: running the project's linter (`bin/lint`) and rebasing on
+upstream before submitting are small habits that directly affect whether a
+maintainer can merge quickly. My PR merged with zero change requests, which
+I attribute partly to documenting the verification (console output,
+before/after) inside the PR itself.
+ 
+Finally, finding the right issue took longer than the fix. I evaluated
+several projects (Mantine, Kanboard, Flarum, InvoiceShelf,
+laravel/vs-code-extension) before landing on rubyevents. That search taught
+me to read a project's health signals: activity level, number of core
+contributors, issue response time, and whether external contributors' PRs
+actually get merged.
+ 
